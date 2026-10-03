@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>게임 보스 타임테이블 (Boss Timetable)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gaming: {
+                            bg: '#070a12',
+                            card: '#111827',
+                            border: '#1f293d',
+                            accent: '#6366f1',
+                            spawned: '#ef4444',
+                            imminent: '#f59e0b',
+                            waiting: '#10b981'
+                        }
+                    },
+                    animation: {
+                        'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                    },
+                    keyframes: {
+                        glow: {
+                            '0%': { boxShadow: '0 0 5px rgba(239, 68, 68, 0.4)' },
+                            '100%': { boxShadow: '0 0 20px rgba(239, 68, 68, 0.8)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Noto Sans KR & Inter Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans KR', sans-serif;
+            background-color: #070a12;
+            color: #f8fafc;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-950 text-slate-100 antialiased selection:bg-indigo-500 selection:text-white">
+
+    <header class="sticky top-0 z-30 border-b border-slate-800/80 bg-slate-900/80 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- Brand Title -->
+            <div class="flex items-center space-x-3">
+                <div class="p-2.5 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white rounded-xl shadow-lg shadow-indigo-500/20">
+                    <i class="fa-solid fa-dragon text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-black bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-400 bg-clip-text text-transparent tracking-tight">
+                        보스 타임테이블
+                    </h1>
+                    <p class="text-[11px] text-slate-400 font-medium hidden sm:block">파티/파트별 색상 구분 & 실시간 젠타임 공유 시스템</p>
+                </div>
+            </div>
+
+            <!-- Top Action Buttons -->
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <!-- Share Link Button -->
+                <button onclick="shareViaURL()" class="flex items-center space-x-2 px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs sm:text-sm font-bold rounded-xl shadow-lg shadow-indigo-600/25 transition-all transform active:scale-95">
+                    <i class="fa-solid fa-share-nodes"></i>
+                    <span>링크 공유</span>
+                </button>
+
+                <!-- Export/Import JSON -->
+                <button onclick="openExportModal()" class="p-2.5 text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/50 rounded-xl transition" title="데이터 JSON 내보내기 / 불러오기">
+                    <i class="fa-solid fa-file-export text-sm"></i>
+                </button>
+
+                <!-- Sound Alert Toggle -->
+                <button id="soundToggleBtn" onclick="toggleSound()" class="p-2.5 text-slate-400 hover:text-amber-400 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/50 rounded-xl transition" title="알림 음향 켜기/끄기">
+                    <i id="soundIcon" class="fa-solid fa-volume-xmark text-sm"></i>
+                </button>
+
+                <!-- Add Boss Button -->
+                <button onclick="openBossModal()" class="flex items-center space-x-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-indigo-400 border border-indigo-500/30 text-xs sm:text-sm font-bold rounded-xl transition">
+                    <i class="fa-solid fa-plus"></i>
+                    <span class="hidden sm:inline">보스 추가</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Top Dashboard Stats & Controls -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Clock Box -->
+            <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-4 flex items-center justify-between shadow-sm backdrop-blur-sm">
+                <div>
+                    <div class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">현재 시각</div>
+                    <div id="clockDisplay" class="text-xl font-black text-slate-100 font-mono tracking-tight mt-0.5">00:00:00</div>
+                    <div id="dateDisplay" class="text-xs text-slate-400 mt-0.5">2026-00-00 (월)</div>
+                </div>
+                <div class="text-indigo-400 text-xl p-3 bg-indigo-950/50 rounded-xl border border-indigo-800/40">
+                    <i class="fa-regular fa-clock"></i>
+                </div>
+            </div>
+
+            <!-- Stats: Spawned -->
+            <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-4 flex items-center justify-between backdrop-blur-sm">
+                <div>
+                    <div class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">등장함 (SPAWNED)</div>
+                    <div id="countSpawned" class="text-2xl font-black text-red-500 mt-0.5">0</div>
+                    <div class="text-xs text-slate-400 mt-0.5">즉시 처치 가능 보스</div>
+                </div>
+                <div class="text-red-400 text-xl p-3 bg-red-950/50 rounded-xl border border-red-800/40">
+                    <i class="fa-solid fa-skull"></i>
+                </div>
+            </div>
+
+            <!-- Stats: Imminent -->
+            <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-4 flex items-center justify-between backdrop-blur-sm">
+                <div>
+                    <div class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">30분 이내 임박</div>
+                    <div id="countImminent" class="text-2xl font-black text-amber-400 mt-0.5">0</div>
+                    <div class="text-xs text-slate-400 mt-0.5">집결 준비 필요</div>
+                </div>
+                <div class="text-amber-400 text-xl p-3 bg-amber-950/50 rounded-xl border border-amber-800/40">
+                    <i class="fa-solid fa-hourglass-half"></i>
+                </div>
+            </div>
+
+            <!-- Sort & Category Filter Bar -->
+            <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-3.5 flex flex-col justify-between space-y-2 backdrop-blur-sm">
+                <div class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">정렬 및 파트 필터링</div>
+                <div class="grid grid-cols-2 gap-2">
+                    <select id="sortSelect" onchange="renderBosses()" class="bg-slate-800 border border-slate-700/80 text-slate-200 text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+                        <option value="nextSpawn">남은시간 순</option>
+                        <option value="name">보스 이름순</option>
+                        <option value="category">파트(카테고리)순</option>
+                    </select>
+                    <select id="filterCategorySelect" onchange="renderBosses()" class="bg-slate-800 border border-slate-700/80 text-slate-200 text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+                        <option value="all">전체 파트 보기</option>
+                        <!-- Dynamic options via JS -->
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Part/Category Color Legend Bar -->
+        <div class="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-2 text-xs font-bold text-slate-300">
+                <i class="fa-solid fa-palette text-indigo-400"></i>
+                <span>파트별 색상 구분 범례:</span>
+            </div>
+            <div id="categoryLegend" class="flex flex-wrap items-center gap-2">
+                <!-- Dynamic Category Badges -->
+            </div>
+        </div>
+
+        <!-- Boss List Section -->
+        <div class="space-y-4">
+            <div class="flex items-center justify-between px-1">
+                <h2 class="text-base font-extrabold text-slate-100 flex items-center gap-2">
+                    <i class="fa-solid fa-shield-halved text-indigo-400"></i>
+                    <span>보스 현황 타임테이블</span>
+                    <span id="totalBossCount" class="px-2.5 py-0.5 text-xs bg-slate-800 text-indigo-400 font-bold rounded-full border border-slate-700">0</span>
+                </h2>
+                <div class="flex items-center space-x-3 text-xs font-semibold text-slate-400">
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>대기</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>임박</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>등장</span>
+                </div>
+            </div>
+
+            <!-- Boss Cards Grid -->
+            <div id="bossGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Rendered dynamically -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden text-center py-16 bg-slate-900/40 border border-dashed border-slate-800 rounded-2xl">
+                <i class="fa-solid fa-ghost text-4xl text-slate-600 mb-3"></i>
+                <p class="text-slate-400 text-sm font-semibold">표시할 보스가 없습니다.</p>
+                <p class="text-slate-500 text-xs mt-1">상단의 [보스 추가] 버튼을 눌러 새 보스를 추가해 보세요.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/80 bg-slate-950 py-4 text-center text-xs text-slate-500 font-medium">
+        <p>게임 보스 타임테이블 &bull; 상단 [링크 공유] 버튼으로 파티원/혈맹원과 실시간 젠타임을 동일하게 공유할 수 있습니다.</p>
+    </footer>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <!-- Modal 1: Add / Edit Boss -->
+    <div id="bossModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+            <button onclick="closeBossModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-1">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <h3 id="modalTitle" class="text-lg font-black text-slate-100 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-square-plus text-indigo-400"></i>
+                <span>보스 등록 / 수정</span>
+            </h3>
+
+            <form id="bossForm" onsubmit="handleSaveBoss(event)" class="space-y-4">
+                <input type="hidden" id="bossId">
+                
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">보스 이름</label>
+                    <input type="text" id="bossName" required placeholder="예: 자켄, 안타라스, 오르펜" class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+                </div>
+
+                <!-- Part / Category Selection with Colors -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">파트 / 카테고리 (색상 구획)</label>
+                    <select id="bossCategory" class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+
+                <!-- Boss Type Select -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">젠 계산 방식 (타입)</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="flex items-center justify-center p-2.5 bg-slate-800 border border-slate-700 rounded-xl cursor-pointer has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-950/40 text-xs font-bold text-slate-300">
+                            <input type="radio" name="bossType" value="cooldown" checked onchange="toggleBossTypeFields()" class="hidden">
+                            <i class="fa-solid fa-stopwatch mr-1.5 text-indigo-400"></i>처치 쿨타임 방식
+                        </label>
+                        <label class="flex items-center justify-center p-2.5 bg-slate-800 border border-slate-700 rounded-xl cursor-pointer has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-950/40 text-xs font-bold text-slate-300">
+                            <input type="radio" name="bossType" value="fixed" onchange="toggleBossTypeFields()" class="hidden">
+                            <i class="fa-solid fa-calendar-days mr-1.5 text-purple-400"></i>고정 요일/시간 방식
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Cooldown Fields -->
+                <div id="cooldownFields" class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">젠 쿨타임 (시간)</label>
+                        <input type="number" id="coolHours" min="0" max="168" value="4" class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">젠 쿨타임 (분)</label>
+                        <input type="number" id="coolMinutes" min="0" max="59" value="0" class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono">
+                    </div>
+                </div>
+
+                <!-- Fixed Schedule Fields -->
+                <div id="fixedFields" class="hidden space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">등장 요일 (다중 선택 가능)</label>
+                        <div class="grid grid-cols-7 gap-1">
+                            <button type="button" onclick="toggleDaySelect(this, 1)" class="day-btn py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-slate-300 font-extrabold">월</button>
+                            <button type="button" onclick="toggleDaySelect(this, 2)" class="day-btn py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-slate-300 font-extrabold">화</button>
+                            <button type="button" onclick="toggleDaySelect(this, 3)" class="day-btn py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-slate-300 font-extrabold">수</button>
+                            <button type="button" onclick="toggleDaySelect(this, 4)" class="day-btn py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-slate-300 font-extrabold">목</button>
+                            <button type="button" onclick="toggleDaySelect(this, 5)" class="day-btn py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-slate-300 font-extrabold">금</button>
+                            <button type="button" onclick="toggleDaySelect(this, 6)" class="day-btn py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-blue-400 font-extrabold">토</button>
+                            <button type="button" onclick="toggleDaySelect(this, 0)" class="day-btn py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-red-400 font-extrabold">일</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">고정 등장 시각</label>
+                        <input type="time" id="fixedTime" value="20:00" class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono">
+                    </div>
+                </div>
+
+                <div class="pt-2 flex space-x-3">
+                    <button type="button" onclick="closeBossModal()" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl transition">취소</button>
+                    <button type="submit" class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/30 transition">저장하기</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 2: Manual Kill Time Picker -->
+    <div id="manualKillModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+            <button onclick="closeManualKillModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-1">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <h3 class="text-lg font-black text-slate-100 mb-1 flex items-center gap-2">
+                <i class="fa-solid fa-clock-rotate-left text-amber-400"></i>
+                <span>수동 처치 시각 지정</span>
+            </h3>
+            <p id="manualKillBossName" class="text-xs text-indigo-400 font-bold mb-4">보스명</p>
+
+            <form id="manualKillForm" onsubmit="handleSaveManualKill(event)" class="space-y-4">
+                <input type="hidden" id="manualBossId">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">보스를 처치했던 날짜 및 시각</label>
+                    <input type="datetime-local" id="manualKillDateTime" required class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono">
+                </div>
+                <div class="text-xs text-slate-400 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+                    💡 **안내:** 지정한 처치 시각을 기준으로 설정된 쿨타임(시간/분)이 더해져 다음 젠 시각이 자동 계산됩니다.
+                </div>
+                <div class="pt-2 flex space-x-3">
+                    <button type="button" onclick="closeManualKillModal()" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl transition">취소</button>
+                    <button type="submit" class="flex-1 py-2.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-amber-600/30 transition">처치 시각 업데이트</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 3: Import / Export JSON -->
+    <div id="exportModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl relative">
+            <button onclick="closeExportModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-1">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <h3 class="text-lg font-black text-slate-100 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-file-arrow-up text-indigo-400"></i>
+                <span>데이터 JSON 내보내기 / 불러오기</span>
+            </h3>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">보스 타임테이블 JSON 데이터</label>
+                    <textarea id="jsonArea" rows="7" class="w-full font-mono text-xs bg-slate-950 border border-slate-800 text-emerald-400 rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-indigo-500 selection:bg-indigo-900"></textarea>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="copyJSONToClipboard()" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 transition flex items-center justify-center gap-2">
+                        <i class="fa-regular fa-copy"></i>
+                        <span>JSON 복사</span>
+                    </button>
+                    <button onclick="importJSONFromText()" class="py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-file-import"></i>
+                        <span>데이터 교체하기</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Predefined Category Palette Config
+        const CATEGORIES = {
+            'world': { id: 'world', name: '월드 보스', color: 'red', badgeBg: 'bg-red-500/10', badgeText: 'text-red-400', border: 'border-red-500', hex: '#ef4444' },
+            'field': { id: 'field', name: '필드 보스', color: 'purple', badgeBg: 'bg-purple-500/10', badgeText: 'text-purple-400', border: 'border-purple-500', hex: '#a855f7' },
+            'dungeon': { id: 'dungeon', name: '던전 보스', color: 'blue', badgeBg: 'bg-blue-500/10', badgeText: 'text-blue-400', border: 'border-blue-500', hex: '#3b82f6' },
+            'guild': { id: 'guild', name: '혈맹/길드 레이드', color: 'amber', badgeBg: 'bg-amber-500/10', badgeText: 'text-amber-400', border: 'border-amber-500', hex: '#f59e0b' },
+            'special': { id: 'special', name: '특수 이벤트', color: 'emerald', badgeBg: 'bg-emerald-500/10', badgeText: 'text-emerald-400', border: 'border-emerald-500', hex: '#10b981' }
+        };
+
+        // Preset Initial Data
+        const DEFAULT_PRESET = [
+            { id: 'b1', name: '자켄', category: 'field', type: 'cooldown', hours: 4, minutes: 0, lastKilled: null },
+            { id: 'b2', name: '코어', category: 'field', type: 'cooldown', hours: 6, minutes: 30, lastKilled: null },
+            { id: 'b3', name: '월드보스 안타라스', category: 'world', type: 'fixed', days: [3, 6], time: '20:00' }, // Wed(3), Sat(6)
+            { id: 'b4', name: '혈맹 레이드 발라카스', category: 'guild', type: 'fixed', days: [0], time: '19:00' }, // Sun(0)
+            { id: 'b5', name: '상아탑 던전 보스', category: 'dungeon', type: 'cooldown', hours: 8, minutes: 0, lastKilled: null }
+        ];
+
+        let bosses = [];
+        let soundEnabled = false;
+        let spawnedAlertedSet = new Set();
+        let selectedDays = [1, 3];
+        let audioCtx = null;
+
+        // Initialize application on load
+        window.addEventListener('DOMContentLoaded', () => {
+            populateCategoryDropdowns();
+            loadInitialData();
+            updateClock();
+            setInterval(updateClock, 1000);
+            setInterval(tickCountdowns, 1000);
+        });
+
+        // Populate Category Select & Legend Filter Options
+        function populateCategoryDropdowns() {
+            const selectModal = document.getElementById('bossCategory');
+            const selectFilter = document.getElementById('filterCategorySelect');
+            const legendContainer = document.getElementById('categoryLegend');
+
+            selectModal.innerHTML = '';
+            selectFilter.innerHTML = '<option value="all">전체 파트 보기</option>';
+            legendContainer.innerHTML = '';
+
+            Object.values(CATEGORIES).forEach(cat => {
+                // Modal Select Option
+                const optModal = document.createElement('option');
+                optModal.value = cat.id;
+                optModal.textContent = cat.name;
+                selectModal.appendChild(optModal);
+
+                // Filter Select Option
+                const optFilter = document.createElement('option');
+                optFilter.value = cat.id;
+                optFilter.textContent = `${cat.name}만 보기`;
+                selectFilter.appendChild(optFilter);
+
+                // Legend Badge
+                const badge = document.createElement('span');
+                badge.className = `px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1.5 ${cat.badgeBg} ${cat.badgeText} ${cat.border}/40`;
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full" style="background-color: ${cat.hex}"></span>${cat.name}`;
+                legendContainer.appendChild(badge);
+            });
+        }
+
+        // Load dataset from Hash URL, Query Params, or default preset
+        function loadInitialData() {
+            let loaded = false;
+
+            // 1. Check URL Hash #data=...
+            const hash = window.location.hash;
+            if (hash && hash.startsWith('#data=')) {
+                try {
+                    const encodedData = hash.replace('#data=', '');
+                    const jsonStr = decodeURIComponent(atob(encodedData));
+                    const parsed = JSON.parse(jsonStr);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        bosses = parsed;
+                        loaded = true;
+                        showToast('공유 URL 링크 데이터로 타임테이블을 로드했습니다.', 'success');
+                    }
+                } catch (e) {
+                    console.error('URL Hash Load Error', e);
+                }
+            }
+
+            // 2. Check URL Search Param ?data=...
+            if (!loaded) {
+                const urlParams = new URLSearchParams(window.location.search);
+                const queryData = urlParams.get('data');
+                if (queryData) {
+                    try {
+                        const jsonStr = decodeURIComponent(atob(queryData));
+                        const parsed = JSON.parse(jsonStr);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            bosses = parsed;
+                            loaded = true;
+                            showToast('공유 링크 데이터가 로드되었습니다.', 'success');
+                        }
+                    } catch (e) {
+                        console.error('URL Query Data Load Error', e);
+                    }
+                }
+            }
+
+            if (!loaded) {
+                bosses = DEFAULT_PRESET;
+            }
+
+            renderBosses();
+        }
+
+        // Clock Display
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toTimeString().split(' ')[0];
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const date = String(now.getDate()).padStart(2, '0');
+            const days = ['일', '월', '화', '수', '목', '금', '토'];
+            const dayName = days[now.getDay()];
+
+            document.getElementById('clockDisplay').textContent = timeStr;
+            document.getElementById('dateDisplay').textContent = `${year}-${month}-${date} (${dayName})`;
+        }
+
+        // Calculate Next Spawn Time
+        function getNextSpawnTime(boss) {
+            if (boss.type === 'fixed') {
+                return getNextFixedSpawnTime(boss.days, boss.time);
+            }
+            if (!boss.lastKilled) return null;
+            const killTime = new Date(boss.lastKilled).getTime();
+            const cooldownMs = ((boss.hours || 0) * 3600 + (boss.minutes || 0) * 60) * 1000;
+            return new Date(killTime + cooldownMs);
+        }
+
+        // Fixed Spawn Time calculation
+        function getNextFixedSpawnTime(days, timeStr) {
+            if (!days || days.length === 0 || !timeStr) return null;
+
+            const [targetH, targetM] = timeStr.split(':').map(Number);
+            const now = new Date();
+            let candidateSpawns = [];
+
+            for (let dayOffset = 0; dayOffset < 14; dayOffset++) {
+                const checkDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + dayOffset, targetH, targetM, 0, 0);
+                const dayOfWeek = checkDate.getDay();
+
+                if (days.includes(dayOfWeek)) {
+                    if (checkDate.getTime() > now.getTime() - (15 * 60 * 1000)) {
+                        candidateSpawns.push(checkDate);
+                    }
+                }
+            }
+
+            if (candidateSpawns.length === 0) return null;
+            candidateSpawns.sort((a, b) => a.getTime() - b.getTime());
+            return candidateSpawns[0];
+        }
+
+        function getBossStatus(nextSpawn) {
+            if (!nextSpawn) return 'UNSET';
+            const now = new Date().getTime();
+            const diffMs = nextSpawn.getTime() - now;
+
+            if (diffMs <= 0) return 'SPAWNED';
+            if (diffMs <= 30 * 60 * 1000) return 'IMMINENT';
+            return 'WAITING';
+        }
+
+        function getCountdownString(nextSpawn) {
+            if (!nextSpawn) return '시각 미설정';
+            const now = new Date().getTime();
+            const diffMs = nextSpawn.getTime() - now;
+
+            if (diffMs <= 0) {
+                return '🔥 젠 완료! (SPAWNED)';
+            }
+
+            const totalSec = Math.floor(diffMs / 1000);
+            const days = Math.floor(totalSec / 86400);
+            const hours = Math.floor((totalSec % 86400) / 3600);
+            const minutes = Math.floor((totalSec % 3600) / 60);
+            const seconds = totalSec % 60;
+
+            const pad = (num) => String(num).padStart(2, '0');
+
+            if (days > 0) {
+                return `${days}일 ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+            }
+            return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+        }
+
+        function renderBosses() {
+            const grid = document.getElementById('bossGrid');
+            const emptyState = document.getElementById('emptyState');
+            const sortMode = document.getElementById('sortSelect').value;
+            const filterCategory = document.getElementById('filterCategorySelect').value;
+
+            // Filter
+            let filtered = bosses.filter(b => {
+                if (filterCategory !== 'all' && b.category !== filterCategory) return false;
+                return true;
+            });
+
+            document.getElementById('totalBossCount').textContent = filtered.length;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                updateSummaryCounts();
+                return;
+            }
+            emptyState.classList.add('hidden');
+
+            // Sort
+            filtered.sort((a, b) => {
+                if (sortMode === 'name') {
+                    return a.name.localeCompare(b.name, 'ko');
+                }
+                if (sortMode === 'category') {
+                    return (a.category || '').localeCompare(b.category || '', 'ko');
+                }
+                const spawnA = getNextSpawnTime(a);
+                const spawnB = getNextSpawnTime(b);
+                if (!spawnA && !spawnB) return 0;
+                if (!spawnA) return 1;
+                if (!spawnB) return -1;
+                return spawnA.getTime() - spawnB.getTime();
+            });
+
+            grid.innerHTML = filtered.map(boss => createBossCardHTML(boss)).join('');
+            updateSummaryCounts();
+        }
+
+        function createBossCardHTML(boss) {
+            const nextSpawn = getNextSpawnTime(boss);
+            const status = getBossStatus(nextSpawn);
+            const cat = CATEGORIES[boss.category] || CATEGORIES['field'];
+
+            let statusBadge = '';
+            let cardBorder = `border-l-4 ${cat.border} border-slate-800/90`;
+            let bgGlow = 'bg-slate-900/90';
+
+            if (status === 'SPAWNED') {
+                statusBadge = `<span class="px-2.5 py-1 text-xs font-black bg-red-500/20 text-red-400 border border-red-500/40 rounded-full animate-pulse-fast"><i class="fa-solid fa-skull mr-1"></i>등장함</span>`;
+                bgGlow = 'bg-gradient-to-b from-red-950/30 via-slate-900 to-slate-900';
+            } else if (status === 'IMMINENT') {
+                statusBadge = `<span class="px-2.5 py-1 text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40 rounded-full"><i class="fa-solid fa-hourglass-half mr-1"></i>임박</span>`;
+                bgGlow = 'bg-gradient-to-b from-amber-950/20 via-slate-900 to-slate-900';
+            } else if (status === 'WAITING') {
+                statusBadge = `<span class="px-2.5 py-1 text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-full"><i class="fa-solid fa-hourglass-start mr-1"></i>대기중</span>`;
+            } else {
+                statusBadge = `<span class="px-2.5 py-1 text-xs font-medium bg-slate-800 text-slate-400 rounded-full">미설정</span>`;
+            }
+
+            const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+            let scheduleInfo = '';
+
+            if (boss.type === 'fixed') {
+                const formattedDays = (boss.days || []).map(d => dayNames[d]).join(', ');
+                scheduleInfo = `매주 [${formattedDays}] ${boss.time}`;
+            } else {
+                scheduleInfo = `쿨타임: ${boss.hours || 0}시간 ${boss.minutes || 0}분`;
+            }
+
+            const lastKilledText = boss.lastKilled ? formatDate(new Date(boss.lastKilled)) : '기록 없음';
+            const nextSpawnText = nextSpawn ? formatDate(nextSpawn) : '잡은 시간을 입력하세요';
+
+            return `
+                <div id="card-${boss.id}" class="relative bg-slate-900 ${bgGlow} border ${cardBorder} rounded-2xl p-5 shadow-xl transition-all hover:border-slate-700 flex flex-col justify-between">
+                    <div>
+                        <!-- Header & Badges -->
+                        <div class="flex items-start justify-between mb-2">
+                            <div>
+                                <div class="flex flex-wrap items-center gap-1.5 mb-1.5">
+                                    <!-- Category Part Badge -->
+                                    <span class="text-[11px] font-bold px-2 py-0.5 rounded-md ${cat.badgeBg} ${cat.badgeText} border ${cat.border}/30">
+                                        <i class="fa-solid fa-bookmark mr-1"></i>${cat.name}
+                                    </span>
+                                    <!-- Type Badge -->
+                                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-md ${boss.type === 'fixed' ? 'bg-purple-950/80 text-purple-300 border border-purple-700/50' : 'bg-slate-800 text-slate-300 border border-slate-700'}">
+                                        ${boss.type === 'fixed' ? '고정 요일' : '처치 쿨타임'}
+                                    </span>
+                                </div>
+                                <h3 class="text-base font-black text-slate-100 tracking-tight">${escapeHTML(boss.name)}</h3>
+                                <div class="text-xs text-slate-400 font-medium mt-0.5">
+                                    <i class="fa-regular fa-clock mr-1 text-indigo-400"></i>${scheduleInfo}
+                                </div>
+                            </div>
+                            <div>${statusBadge}</div>
+                        </div>
+
+                        <!-- Timer Display Box -->
+                        <div class="my-3 p-3 bg-slate-950/80 rounded-xl border border-slate-800/80 text-center">
+                            <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">남은 카운트다운</div>
+                            <div id="countdown-${boss.id}" class="text-xl sm:text-2xl font-black font-mono tracking-tight ${status === 'SPAWNED' ? 'text-red-400' : status === 'IMMINENT' ? 'text-amber-400' : 'text-slate-100'}">
+                                ${getCountdownString(nextSpawn)}
+                            </div>
+                        </div>
+
+                        <!-- Schedule details -->
+                        <div class="space-y-1.5 text-xs text-slate-400 mb-4">
+                            ${boss.type === 'cooldown' ? `
+                                <div class="flex justify-between">
+                                    <span class="text-slate-500 font-medium">최근 처치:</span>
+                                    <span class="font-mono text-slate-300">${lastKilledText}</span>
+                                </div>
+                            ` : ''}
+                            <div class="flex justify-between">
+                                <span class="text-slate-500 font-medium">다음 젠 시각:</span>
+                                <span class="font-mono font-bold text-indigo-300">${nextSpawnText}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="pt-3 border-t border-slate-800/80 flex items-center space-x-2">
+                        ${boss.type === 'cooldown' ? `
+                            <button onclick="killBossNow('${boss.id}')" class="flex-1 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-600/20 transition flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-crosshairs"></i>
+                                <span>처치 (Kill)</span>
+                            </button>
+                            <button onclick="openManualKillModal('${boss.id}')" class="p-2 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-xl transition border border-slate-700/50" title="수동 시각 지정">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                        ` : `
+                            <div class="flex-1 text-xs text-slate-400 flex items-center justify-center bg-slate-950/50 py-2 rounded-xl border border-slate-800/80 font-medium">
+                                <i class="fa-solid fa-calendar-check mr-1.5 text-purple-400"></i> 고정 스케줄 자동 정렬
+                            </div>
+                        `}
+                        <button onclick="openBossModal('${boss.id}')" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition border border-slate-700/50" title="보스 수정">
+                            <i class="fa-solid fa-gear"></i>
+                        </button>
+                        <button onclick="deleteBoss('${boss.id}')" class="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-xl transition border border-slate-700/50" title="보스 삭제">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Ticking loop
+        function tickCountdowns() {
+            bosses.forEach(boss => {
+                const nextSpawn = getNextSpawnTime(boss);
+                const status = getBossStatus(nextSpawn);
+                const el = document.getElementById(`countdown-${boss.id}`);
+                if (el) {
+                    el.textContent = getCountdownString(nextSpawn);
+                }
+
+                if (status === 'SPAWNED' && !spawnedAlertedSet.has(boss.id)) {
+                    spawnedAlertedSet.add(boss.id);
+                    if (soundEnabled) {
+                        playBeepSound();
+                    }
+                } else if (status !== 'SPAWNED') {
+                    spawnedAlertedSet.delete(boss.id);
+                }
+            });
+
+            updateSummaryCounts();
+        }
+
+        function updateSummaryCounts() {
+            let spawned = 0;
+            let imminent = 0;
+
+            bosses.forEach(b => {
+                const nextSpawn = getNextSpawnTime(b);
+                const status = getBossStatus(nextSpawn);
+                if (status === 'SPAWNED') spawned++;
+                if (status === 'IMMINENT') imminent++;
+            });
+
+            document.getElementById('countSpawned').textContent = spawned;
+            document.getElementById('countImminent').textContent = imminent;
+        }
+
+        // Quick Kill Now
+        function killBossNow(bossId) {
+            const boss = bosses.find(b => b.id === bossId);
+            if (!boss) return;
+
+            boss.lastKilled = new Date().toISOString();
+            renderBosses();
+            showToast(`[${boss.name}] 처치 시각이 현재 시간으로 설정되었습니다.`, 'success');
+        }
+
+        // Manual Kill Time Handlers
+        function openManualKillModal(bossId) {
+            const boss = bosses.find(b => b.id === bossId);
+            if (!boss) return;
+
+            document.getElementById('manualBossId').value = boss.id;
+            document.getElementById('manualKillBossName').textContent = `대상: ${boss.name}`;
+
+            const d = boss.lastKilled ? new Date(boss.lastKilled) : new Date();
+            const localIso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+            document.getElementById('manualKillDateTime').value = localIso;
+
+            document.getElementById('manualKillModal').classList.remove('hidden');
+        }
+
+        function closeManualKillModal() {
+            document.getElementById('manualKillModal').classList.add('hidden');
+        }
+
+        function handleSaveManualKill(event) {
+            event.preventDefault();
+            const bossId = document.getElementById('manualBossId').value;
+            const dtVal = document.getElementById('manualKillDateTime').value;
+
+            const boss = bosses.find(b => b.id === bossId);
+            if (boss && dtVal) {
+                boss.lastKilled = new Date(dtVal).toISOString();
+                closeManualKillModal();
+                renderBosses();
+                showToast(`[${boss.name}] 수동 처치 시각이 업데이트되었습니다.`, 'info');
+            }
+        }
+
+        // Add / Edit Boss Modal Handlers
+        function toggleBossTypeFields() {
+            const selectedType = document.querySelector('input[name="bossType"]:checked').value;
+            const cooldownFields = document.getElementById('cooldownFields');
+            const fixedFields = document.getElementById('fixedFields');
+
+            if (selectedType === 'fixed') {
+                cooldownFields.classList.add('hidden');
+                fixedFields.classList.remove('hidden');
+            } else {
+                cooldownFields.classList.remove('hidden');
+                fixedFields.classList.add('hidden');
+            }
+        }
+
+        function toggleDaySelect(btn, dayIndex) {
+            if (selectedDays.includes(dayIndex)) {
+                selectedDays = selectedDays.filter(d => d !== dayIndex);
+            } else {
+                selectedDays.push(dayIndex);
+            }
+            updateDayButtonsUI();
+        }
+
+        function updateDayButtonsUI() {
+            const buttons = document.querySelectorAll('.day-btn');
+            const daysOrder = [1, 2, 3, 4, 5, 6, 0];
+            buttons.forEach((btn, idx) => {
+                const dayVal = daysOrder[idx];
+                if (selectedDays.includes(dayVal)) {
+                    btn.classList.add('bg-indigo-600', 'text-white', 'border-indigo-500');
+                    btn.classList.remove('bg-slate-800', 'text-slate-300', 'border-slate-700');
+                } else {
+                    btn.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-500');
+                    btn.classList.add('bg-slate-800', 'text-slate-300', 'border-slate-700');
+                }
+            });
+        }
+
+        function openBossModal(editId = null) {
+            const form = document.getElementById('bossForm');
+            form.reset();
+
+            if (editId) {
+                const boss = bosses.find(b => b.id === editId);
+                if (boss) {
+                    document.getElementById('bossId').value = boss.id;
+                    document.getElementById('bossName').value = boss.name;
+                    document.getElementById('bossCategory').value = boss.category || 'field';
+
+                    const typeRadios = document.querySelectorAll('input[name="bossType"]');
+                    typeRadios.forEach(r => r.checked = (r.value === (boss.type || 'cooldown')));
+
+                    if (boss.type === 'fixed') {
+                        selectedDays = boss.days || [1];
+                        document.getElementById('fixedTime').value = boss.time || '20:00';
+                    } else {
+                        document.getElementById('coolHours').value = boss.hours || 0;
+                        document.getElementById('coolMinutes').value = boss.minutes || 0;
+                        selectedDays = [1, 3];
+                    }
+                    document.getElementById('modalTitle').textContent = '보스 설정 수정';
+                }
+            } else {
+                document.getElementById('bossId').value = '';
+                selectedDays = [1, 3];
+                document.getElementById('modalTitle').textContent = '새 보스 등록';
+            }
+
+            toggleBossTypeFields();
+            updateDayButtonsUI();
+            document.getElementById('bossModal').classList.remove('hidden');
+        }
+
+        function closeBossModal() {
+            document.getElementById('bossModal').classList.add('hidden');
+        }
+
+        function handleSaveBoss(event) {
+            event.preventDefault();
+            const id = document.getElementById('bossId').value;
+            const name = document.getElementById('bossName').value.trim();
+            const category = document.getElementById('bossCategory').value;
+            const type = document.querySelector('input[name="bossType"]:checked').value;
+
+            if (!name) return;
+
+            if (type === 'fixed' && selectedDays.length === 0) {
+                showToast('고정 등장 보스는 최소 1개 이상의 요일을 선택해야 합니다.', 'error');
+                return;
+            }
+
+            if (id) {
+                const boss = bosses.find(b => b.id === id);
+                if (boss) {
+                    boss.name = name;
+                    boss.category = category;
+                    boss.type = type;
+                    if (type === 'fixed') {
+                        boss.days = [...selectedDays];
+                        boss.time = document.getElementById('fixedTime').value;
+                    } else {
+                        boss.hours = parseInt(document.getElementById('coolHours').value) || 0;
+                        boss.minutes = parseInt(document.getElementById('coolMinutes').value) || 0;
+                    }
+                    showToast(`[${name}] 보스 설정이 수정되었습니다.`, 'info');
+                }
+            } else {
+                const newBoss = {
+                    id: 'b_' + Date.now(),
+                    name: name,
+                    category: category,
+                    type: type,
+                    hours: type === 'cooldown' ? (parseInt(document.getElementById('coolHours').value) || 0) : 0,
+                    minutes: type === 'cooldown' ? (parseInt(document.getElementById('coolMinutes').value) || 0) : 0,
+                    days: type === 'fixed' ? [...selectedDays] : [],
+                    time: type === 'fixed' ? document.getElementById('fixedTime').value : '20:00',
+                    lastKilled: null
+                };
+                bosses.push(newBoss);
+                showToast(`새 보스 [${name}]가 추가되었습니다!`, 'success');
+            }
+
+            closeBossModal();
+            renderBosses();
+        }
+
+        function deleteBoss(bossId) {
+            const boss = bosses.find(b => b.id === bossId);
+            if (!boss) return;
+
+            if (confirm(`'${boss.name}' 보스를 타임테이블에서 삭제하시겠습니까?`)) {
+                bosses = bosses.filter(b => b.id !== bossId);
+                renderBosses();
+                showToast(`[${boss.name}] 보스가 삭제되었습니다.`, 'info');
+            }
+        }
+
+        function shareViaURL() {
+            try {
+                const jsonStr = JSON.stringify(bosses);
+                const encoded = btoa(encodeURIComponent(jsonStr));
+                const shareableURL = `${window.location.origin}${window.location.pathname}#data=${encoded}`;
+
+                copyTextToClipboard(shareableURL);
+                showToast('공유 URL 링크가 클립보드에 복사되었습니다! 파티원들에게 전달하세요.', 'success');
+            } catch (e) {
+                console.error(e);
+                showToast('URL 생성 중 오류가 발생했습니다.', 'error');
+            }
+        }
+
+        function copyTextToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text);
+            } else {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+            }
+        }
+
+        function openExportModal() {
+            const jsonArea = document.getElementById('jsonArea');
+            jsonArea.value = JSON.stringify(bosses, null, 2);
+            document.getElementById('exportModal').classList.remove('hidden');
+        }
+
+        function closeExportModal() {
+            document.getElementById('exportModal').classList.add('hidden');
+        }
+
+        function copyJSONToClipboard() {
+            const jsonArea = document.getElementById('jsonArea');
+            copyTextToClipboard(jsonArea.value);
+            showToast('JSON 데이터가 클립보드에 복사되었습니다.', 'success');
+        }
+
+        function importJSONFromText() {
+            const jsonArea = document.getElementById('jsonArea');
+            try {
+                const parsed = JSON.parse(jsonArea.value);
+                if (Array.isArray(parsed)) {
+                    bosses = parsed;
+                    renderBosses();
+                    closeExportModal();
+                    showToast('성공적으로 타임테이블 데이터를 교체했습니다.', 'success');
+                } else {
+                    showToast('올바른 배열 형태의 JSON 데이터가 아닙니다.', 'error');
+                }
+            } catch (e) {
+                showToast('JSON 형식 오류: 파싱할 수 없습니다.', 'error');
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('soundIcon');
+            const btn = document.getElementById('soundToggleBtn');
+
+            if (soundEnabled) {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                icon.className = 'fa-solid fa-volume-high text-amber-400';
+                btn.title = '알림 음향 켜짐';
+                showToast('보스 젠 알림 소리가 켜졌습니다.', 'info');
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark text-slate-400';
+                btn.title = '알림 음향 꺼짐';
+                showToast('보스 젠 알림 소리가 꺼졌습니다.', 'info');
+            }
+        }
+
+        function playBeepSound() {
+            if (!audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.4);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+
+            let icon = 'fa-circle-info text-blue-400';
+            let border = 'border-slate-700';
+
+            if (type === 'success') {
+                icon = 'fa-circle-check text-emerald-400';
+                border = 'border-emerald-500/30';
+            } else if (type === 'error') {
+                icon = 'fa-triangle-exclamation text-red-400';
+                border = 'border-red-500/30';
+            }
+
+            toast.className = `pointer-events-auto flex items-center space-x-3 bg-slate-900 ${border} border text-slate-100 text-xs sm:text-sm px-4 py-3 rounded-xl shadow-xl transition-all duration-300 transform translate-y-2 opacity-0 font-medium`;
+            toast.innerHTML = `
+                <i class="fa-solid ${icon} text-base"></i>
+                <span>${escapeHTML(message)}</span>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3200);
+        }
+
+        function formatDate(dateObj) {
+            if (!dateObj || isNaN(dateObj.getTime())) return '-';
+            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(dateObj.getDate()).padStart(2, '0');
+            const hh = String(dateObj.getHours()).padStart(2, '0');
+            const mm = String(dateObj.getMinutes()).padStart(2, '0');
+            return `${m}/${d} ${hh}:${mm}`;
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+    </script>
+</body>
+</html>
